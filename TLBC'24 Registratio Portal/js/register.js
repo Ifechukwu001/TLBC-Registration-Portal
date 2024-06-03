@@ -1,31 +1,59 @@
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("registration-form");
+  let member = document.getElementById('member');
+  let is_camper = document.getElementById('areYouCamping');
+  let anyHealthCondition = document.getElementById('anyHealthCondition');
+
+  member.addEventListener('change', function () {
+    let zone = document.getElementById('churchZone');
+    let churchname = document.getElementById('churchname');
+    let isMember = document.getElementById('is-member');
+    let notMember = document.getElementById('not-member');
+
+    if (member.value === 'Member') {
+      isMember.style.display = 'block';
+      zone.disabled = false;
+      notMember.style.display = 'none';
+      churchname.disabled = true;
+    } else {
+      isMember.style.display = 'none';
+      zone.disabled = true;
+      notMember.style.display = 'block';
+      churchname.disabled = false;
+    }
+  });
+
+  is_camper.addEventListener('change', function () {
+    let dailyOrStream = document.getElementById('dailyOrStream');
+    let dailyOrStreamDiv = document.getElementById('dailyOrStreamDiv');
+
+    if (is_camper.value === 'Camper') {
+      dailyOrStreamDiv.style.display = 'none';
+      dailyOrStream.disabled = true;
+    } else {
+      dailyOrStreamDiv.style.display = 'block';
+      dailyOrStream.disabled = false;
+    }
+  });
+
+  anyHealthCondition.addEventListener('change', function () {
+    let yourHealthConditionDiv = document.getElementById('yourHealthConditionDiv');
+
+    if (anyHealthCondition.value === 'true') {
+      yourHealthConditionDiv.style.display = 'block';
+    }
+  });
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     clearErrors();
 
-    const formData = {
-      firstname: document.getElementById('firstname').value.trim(),
-      lastname: document.getElementById('lastname').value.trim(),
-      email: document.getElementById('email').value.trim(),
-      password: document.getElementById('password').value.trim(),
-      phone: document.getElementById('number').value.trim(),
-      gender: document.getElementById('gender').value,
-      birthdate: document.getElementById('date').value,
-      address: document.getElementById('address').value.trim(),
-      category: document.getElementById('member').value,
-      church_name: document.getElementById('churchname').value.trim(),
-      attendance_mode: document.getElementById('areYouCamping').value ? document.getElementById('areYouCamping').value : document.getElementById('dailyOrStream').value,
-      was_participant: document.getElementById('haveyouAttendedBefore').value,
-      is_aware_of_convention: document.getElementById('areYouAware').value,
-      health_issue: document.getElementById('yourHealthCondition').value.trim(),
-      reach: document.getElementById('reach').value
-    };
+    let formData1 = new FormData(form);
+    let bodyData = Object.fromEntries(formData1);
 
-    console.log('Form data:', formData); // Debugging statement
 
-    let isValid = validateForm(formData);
+
+    let isValid = validateForm(bodyData);
 
     if (!isValid) {
       return;
@@ -36,10 +64,11 @@ document.addEventListener("DOMContentLoaded", () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFTOKEN': 'KgazvmVtp7eihHzNATYcVslWoKtrNICpO8c2PY31BIN51bsKDEYUe9YotsrXZQ1u',
+          'X-CSRFTOKEN': getCookie('csrftoken'),
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(bodyData)
       });
+      console.log('Response:', response); // Debugging statement   Success response
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -103,13 +132,13 @@ document.addEventListener("DOMContentLoaded", () => {
       isValid = false;
     }
 
-    if (data.category === 'yes' && !data.church_name) {
-      displayError('churchZone-error', 'Church/Zone is required');
+    if (data.category === 'Member' && !data.church_name) {
+      displayError('churchZone-error', 'Church Zone is required');
       isValid = false;
     }
 
-    if (data.category === 'no' && !data.church_name) {
-      displayError('churchname-error', 'Church/Ministry name is required');
+    if (data.category === 'Invitee' && !data.church_name) {
+      displayError('churchname-error', 'Church Ministry name is required');
       isValid = false;
     }
 
@@ -123,23 +152,8 @@ document.addEventListener("DOMContentLoaded", () => {
       isValid = false;
     }
 
-    if (data.attendance_mode === 'no' && !data.reach) {
-      displayError('dailyOrStream-error', 'Participation method is required');
-      isValid = false;
-    }
-
     if (!data.was_participant) {
       displayError('haveyouAttendedBefore-error', 'Past attendance status is required');
-      isValid = false;
-    }
-
-    if (!data.health_issue) {
-      displayError('anyHealthCondition-error', 'Health condition status is required');
-      isValid = false;
-    }
-
-    if (data.health_issue && !data.health_issue) {
-      displayError('yourHealthCondition-error', 'Health condition details are required');
       isValid = false;
     }
 
@@ -165,7 +179,24 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function validatePhone(phone) {
-    const re = /^\d{10}$/; // Example validation for 10-digit phone numbers
+    const re = /^\d{11}$/; // Example validation for 10-digit phone numbers
     return re.test(String(phone));
   }
 });
+
+// This function is used to get the value of a cookie
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      // Does this cookie string begin with the name we want?
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
